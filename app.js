@@ -42,6 +42,17 @@ Sentencer.configure({
       let n = articles.articlize(_n);
       stack.push({type: "an_adjective", n, _n});
       return n;
+    },
+    numeral: function () {
+      let _n = randy.choice([
+        {en: "first", ja: "初めて"},
+        {en: "second", ja: "二つ目"},
+        {en: "third", ja: "三つ目"},
+        {en: "fourth", ja: "四つ目"},
+      ]);
+      let n = _n;
+      stack.push({type: "numeral", n, _n});
+      return n.en;
     }
   }
 })
@@ -60,10 +71,16 @@ function generate(numberOfSentences) {
     sentences_en += start.en + Sentencer.make(main.en) + ". ";
     let temp_ja = main.ja;
     for(const s of stack) {
-      let ja = hepburn.toKatakana(s._n);
-      let ej = ejdict(s._n);
-      if (ej.length > 0) {
-        ja = ej[0].mean.split("/")[0];
+      let ja;
+      if (s._n.ja !== undefined) {
+        ja = s._n.ja;
+      }
+      else {
+        ja = hepburn.toKatakana(s._n);
+        let ej = ejdict(s._n);
+        if (ej.length > 0) {
+          ja = ej[0].mean.split("/")[0];
+        }
       }
       temp_ja = temp_ja.replace(new RegExp(`{{ ${s.type} }}`), ja)
     }
@@ -103,9 +120,25 @@ var sentenceTemplates = [
     ja: "{{ a_noun }}は{{ an_adjective }}{{ noun }}である"
   },
   {
-    en: "the first {{ adjective }} {{ noun }} is, in its own way, {{ a_noun }}",
-    ja: "初めての{{ adjective }}{{ noun }}は、ある意味では{{ a_noun }}だ"
+    en: "the {{ numeral }} {{ adjective }} {{ noun }} is, in its own way, {{ a_noun }}",
+    ja: "{{ numeral }}の{{ adjective }}{{ noun }}は、ある意味では{{ a_noun }}だ"
   },
+  {
+    en: "I encountered {{ an_adjective }} {{ noun }}",
+    ja: "ぼくは{{ an_adjective }}{{ noun }}に出会った"
+  },
+  {
+    en: "that {{ an_adjective }} {{ noun }} reminded me of {{ a_noun }}",
+    ja: "その{{ an_adjective }}な{{ noun }}は、ぼくに{{ a_noun }}を想起させた"
+  },
+  {
+    en: "behind {{ a_noun }}, I found {{ an_adjective }} {{ noun }}",
+    ja: "{{ a_noun }}の裏で、ぼくは{{ an_adjective }}{{ noun }}を見つけた"
+  },
+  // {
+  //   en: "",
+  //   ja: ""
+  // },
   // {en: "their {{ noun }} was, in this moment, {{ an_adjective }} {{ noun }}", 
   // ja: "彼らの{{ noun }}は、現在では{{ an_adjective }}{{ noun }}だ"},
   // {en: "{{ a_noun }} is {{ a_noun }} from the right perspective", 
@@ -161,22 +194,25 @@ var sentenceTemplates = [
 // partial phrases to start with. Capitalized.
 var phrases = [
   { en: "To be more specific, ", ja: "より正確には、" },
-  { en: "In recent years, ", ja: "近年、" },
-  { en: "However, ", ja: "しかし、" },
+  // { en: "In recent years, ", ja: "近年、" },
+  { en: "However, ", ja: "しかしながら、" },
+  { en: "Nevertheless, ", ja: "だがしかし、" },
+  { en: "I could say that ", ja: "強いて言えば、" },
   // {en: "Some assert that ", ja: ""},
   { en: "If this was somewhat unclear, ", ja: "それが不明瞭であれば、" },
   { en: "Unfortunately, that is wrong; on the contrary, ", ja: "しかしそれは残念ながら間違いである。対して、" },
-  { en: "This could be, or perhaps ", ja: "恐らく、強いて言えば" },
+  // { en: "This could be, or perhaps ", ja: "恐らく、強いて言えば" },
   // {en: "This is not to discredit the idea that ", ja: ""},
-  // {en: "We know that ", ja: ""},
+  {en: "We know that ", ja: "知っての通り、"},
   // {en: "It's an undeniable fact, really; ", ja: ""},
-  // {en: "Framed in a different way, ", ja: ""},
+  {en: "Framed in a different way, ", ja: "別の言い方をすれば、"},
+  {en: "If we change the perspective, ", ja: "見かたを変えてみると、"},
   // {en: "What we don't know for sure is whether or not ", ja: ""},
-  // {en: "As far as we can estimate, ", ja: ""},
+  {en: "As far as we can estimate, ", ja: "想定の限りでは、"},
   // {en: "The zeitgeist contends that ", ja: ""},
   // {en: "Though we assume the latter, ", ja: ""},
-  // {en: "Far from the truth, ", ja: ""},
-  // {en: "Extending this logic, ", ja: ""},
+  {en: "Far from the truth, ", ja: "真実とはかけ離れているが、"},
+  {en: "Extending this logic, ", ja: "この論理を応用すると、"},
   // {en: "Nowhere is it disputed that ", ja: ""},
   // {en: "In modern times ", ja: ""},
   // {en: "In ancient times ", ja: ""},
