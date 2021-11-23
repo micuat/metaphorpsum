@@ -34,6 +34,7 @@ const hepburnPlus = (s) => {
     X: "クス",
     Y: "ィ",
     Z: "ズ",
+    "-": "―",
   }
   _s = _s.split("").map(c => consonants[c] !== undefined ? consonants[c] : c).join("");
   return _s;
@@ -94,9 +95,15 @@ function generate(numberOfSentences) {
     // sentences += capitalizeFirstLetter( randomStartingPhrase() + makeSentenceFromTemplate()) + ".";
     // sentences += (numberOfSentences > 1) ? " " : "";
     stack.length = 0;
-    const start = randy.choice(phrases);
+    let start;
+    if (Math.random() < 0.33) {
+      start = randy.choice(phrases);
+    }
+    else {
+      start = {en: "", ja: ""};
+    }
     const main = randy.choice(sentenceTemplates)
-    sentences_en += start.en + Sentencer.make(main.en) + ". ";
+    sentences_en += capitalizeFirstLetter(start.en + Sentencer.make(main.en) + ". ");
     let temp_ja = main.ja;
     for(const s of stack) {
       let ja;
@@ -107,12 +114,51 @@ function generate(numberOfSentences) {
         ja = hepburnPlus(s._n);
         let ej = ejdict(s._n);
         if (ej.length > 0) {
-          ja = ej[0].mean.split("/")[0];
+          // console.log("filtering", ej)
+          let e = randy.choice(ej);
+          console.log("filtering", e.mean)
+          if (/= ?[a-zA-Z]+/g.test(e.mean) === false) {
+            // not "=otherword"
+            let mean = e.mean;
+            let _mean = mean.split("/").filter(m => /…‘.\'/.test(m) === false);
+            if(_mean.length > 0) {
+              mean = randy.choice(_mean);
+              mean = mean.replace(/\(.*\)$/g, "");
+              mean = mean.replace(/「(.*)」/g, "");
+              mean = mean.replace(/《(.*)》/g, "");
+              mean = mean.replace(/〈(.*)〉/g, "");
+              mean = mean.replace(/\{(.*)\}/g, "");
+              mean = randy.choice(mean.split(/[;,』]/));
+              mean = mean.replace(/\(.*\)$/g, "");
+              mean = mean.replace(/『/g, "");
+              mean = mean.replace(/』/g, "");
+              mean = mean.replace(/\(….*\)/g, "");
+              mean = mean.replace(/‘.+'/g, "");
+              mean = mean.replace(/'.+'/g, "");
+              mean = mean.replace(/\([a-zA-Z]+\)/g, "");
+              // mean = mean.replace(/\(/g, "");
+              // mean = mean.replace(/\)/g, "");
+              mean = mean.replace(/\[/g, "");
+              mean = mean.replace(/\]/g, "");
+              mean = mean.replace(/…/g, "");
+              mean = mean.replace(/ /g, "");
+              console.log("filtered", mean)
+              if (mean.length > 0) {
+                ja = mean;
+              }
+            }
+          }
         }
       }
       temp_ja = temp_ja.replace(new RegExp(`{{ ${s.type} }}`), ja)
     }
-    sentences_ja += start.ja + temp_ja + "。";
+    let end;
+    if (start.rev) {
+      sentences_ja += temp_ja + start.ja + "。";
+    }
+    else {
+      sentences_ja += start.ja + temp_ja + "。";
+    }
   }
   return { en: sentences_en, ja: sentences_ja };
 }
@@ -138,7 +184,7 @@ function randomStartingPhrase() {
 }
 
 // style guide: no periods, no first capital letters.
-var sentenceTemplates = [
+var _sentenceTemplates = [
   {
     en: "the {{ noun }} is {{ a_noun }}",
     ja: "{{ noun }}は{{ a_noun }}だ"
@@ -152,12 +198,24 @@ var sentenceTemplates = [
     ja: "{{ numeral }}の{{ adjective }}{{ noun }}は、ある意味では{{ a_noun }}だ"
   },
   {
-    en: "I encountered {{ an_adjective }} {{ noun }}",
-    ja: "ぼくは{{ an_adjective }}{{ noun }}に出会った"
+    en: "I came across {{ an_adjective }} {{ noun }}",
+    ja: "ぼくは{{ an_adjective }}{{ noun }}に出会った",
+    rate: 2,
   },
   {
-    en: "that {{ an_adjective }} {{ noun }} reminded me of {{ a_noun }}",
-    ja: "その{{ an_adjective }}な{{ noun }}は、ぼくに{{ a_noun }}を想起させた"
+    en: "I encountered {{ an_adjective }} {{ noun }}",
+    ja: "ぼくは{{ an_adjective }}{{ noun }}に遭遇した",
+    rate: 2,
+  },
+  {
+    en: "that {{ adjective }} {{ noun }} reminded me of {{ a_noun }}",
+    ja: "その{{ adjective }}な{{ noun }}は、ぼくに{{ a_noun }}を想起させた",
+    rate: 2
+  },
+  {
+    en: "that {{ adjective }} {{ noun }} made me think of {{ a_noun }}",
+    ja: "その{{ adjective }}な{{ noun }}は、ぼくに{{ a_noun }}を思い起こさせた",
+    rate: 2
   },
   {
     en: "behind {{ a_noun }}, I found {{ an_adjective }} {{ noun }}",
@@ -219,14 +277,28 @@ var sentenceTemplates = [
   // ja: ""},
 ];
 
+const sentenceTemplates = [];
+for(const s of _sentenceTemplates) {
+  let rate = 1;
+  if(s.rate !== undefined) rate = s.rate;
+  if(rate == 1) {
+    sentenceTemplates.push(s);
+    sentenceTemplates.push(s);
+  }
+  else {
+    sentenceTemplates.push(s);
+  }
+}
+
 // partial phrases to start with. Capitalized.
 var phrases = [
   { en: "To be more specific, ", ja: "より正確には、" },
-  // { en: "In recent years, ", ja: "近年、" },
+  { en: "In recent years, ", ja: "近ごろ、" },
+  { en: "Therefore, ", ja: "それゆえ、" },
   { en: "However, ", ja: "しかしながら、" },
   { en: "Nevertheless, ", ja: "だがしかし、" },
   { en: "I could say that ", ja: "強いて言えば、" },
-  // {en: "Some assert that ", ja: ""},
+  { en: "Some assert that ", ja: "という者もいるかもしれない", rev: true},
   { en: "If this was somewhat unclear, ", ja: "それが不明瞭であれば、" },
   { en: "Unfortunately, that is wrong; on the contrary, ", ja: "しかしそれは残念ながら間違いである。対して、" },
   // { en: "This could be, or perhaps ", ja: "恐らく、強いて言えば" },
