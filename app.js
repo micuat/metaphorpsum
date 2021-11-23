@@ -11,6 +11,34 @@ const hepburn = require("hepburn");
 
 const stack = [];
 
+const hepburnPlus = (s) => {
+  let _s = hepburn.toKatakana(s);
+  const consonants = {
+    B: "ブ",
+    C: "ク",
+    D: "ド",
+    F: "フ",
+    G: "グ",
+    H: "フ",
+    J: "ジ",
+    K: "ク",
+    L: "ル",
+    M: "ム",
+    P: "プ",
+    Q: "ク",
+    R: "ル",
+    S: "ス",
+    T: "ト",
+    V: "ヴ",
+    W: "ウ",
+    X: "クス",
+    Y: "ィ",
+    Z: "ズ",
+  }
+  _s = _s.split("").map(c => consonants[c] !== undefined ? consonants[c] : c).join("");
+  return _s;
+}
+
 Sentencer.configure({
   actions: {
     noun: function () {
@@ -76,7 +104,7 @@ function generate(numberOfSentences) {
         ja = s._n.ja;
       }
       else {
-        ja = hepburn.toKatakana(s._n);
+        ja = hepburnPlus(s._n);
         let ej = ejdict(s._n);
         if (ej.length > 0) {
           ja = ej[0].mean.split("/")[0];
