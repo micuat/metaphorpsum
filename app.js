@@ -10,6 +10,12 @@ const ejdict = require('ejdict');
 const hepburn = require("hepburn");
 
 const stack = [];
+let lastVec = [];
+
+let numPool = 5;
+let numPoolDiff = 5;
+
+const paragraphWordCount = 100;
 
 const hepburnPlus = (s) => {
   let _s = hepburn.toKatakana(s);
@@ -40,36 +46,50 @@ const hepburnPlus = (s) => {
   return _s;
 }
 
+function pickFromPool(el) {
+  const candidates = [];
+  for(let i = 0; i < numPool; i++) {
+    let _n = randy.choice(Sentencer[el]);
+    let j = translate(_n);
+    candidates.push({ score: j.fv.reduce((a,c)=>a+c,0), _n, ja: j.ja, fv: j.fv });
+  }
+  return candidates.reduce((p, c) => c.score > p.score ? c : p, {score: -1});
+}
 Sentencer.configure({
   actions: {
     noun: function () {
-      let _n = randy.choice(Sentencer._nouns);
+      let { _n, ja, fv } = pickFromPool("_nouns");
       let n = _n;
-      stack.push({type: "noun", n, _n});
+      stack.push({type: "noun", n, ja });
+      lastVec = fv;
       return n;
     },
     a_noun: function () {
-      let _n = randy.choice(Sentencer._nouns);
+      let { _n, ja, fv } = pickFromPool("_nouns");
       let n = articles.articlize(_n);
-      stack.push({type: "a_noun", n, _n});
+      stack.push({type: "a_noun", n, ja });
+      lastVec = fv;
       return n;
     },
     nouns: function () {
-      let _n = randy.choice(Sentencer._nouns);
+      let { _n, ja, fv } = pickFromPool("_nouns");
       let n = nounInflector.pluralize(_n);
-      stack.push({type: "nouns", n, _n});
+      stack.push({type: "nouns", n, ja });
+      lastVec = fv;
       return n;
     },
     adjective: function () {
-      let _n = randy.choice(Sentencer._adjectives);
+      let { _n, ja, fv } = pickFromPool("_adjectives");
       let n = _n;
-      stack.push({type: "adjective", n, _n});
+      stack.push({type: "adjective", n, ja });
+      lastVec = fv;
       return n;
     },
     an_adjective: function () {
-      let _n = randy.choice(Sentencer._adjectives);
-      let n = articles.articlize(_n);
-      stack.push({type: "an_adjective", n, _n});
+      let { _n, ja, fv } = pickFromPool("_adjectives");
+      let n = _n;
+      stack.push({type: "an_adjective", n, ja });
+      lastVec = fv;
       return n;
     },
     numeral: function () {
@@ -79,19 +99,19 @@ Sentencer.configure({
         {en: "third", ja: "三つ目"},
         {en: "fourth", ja: "四つ目"},
       ]);
-      let n = _n;
-      stack.push({type: "numeral", n, _n});
-      return n.en;
+      let n = _n.en;
+      stack.push({type: "numeral", n, ja: _n.ja });
+      return n;
     }
   }
 })
 // generate sentences synchronously...
 // useful for the homepage.
-function generate(numberOfSentences) {
+function generate() {
   var sentences_en = "";
   var sentences_ja = "";
   var i = 0;
-  for (i; i < numberOfSentences; i++) {
+  while(sentences_en.split(" ").length < paragraphWordCount) {
     // sentences += capitalizeFirstLetter( randomStartingPhrase() + makeSentenceFromTemplate()) + ".";
     // sentences += (numberOfSentences > 1) ? " " : "";
     stack.length = 0;
@@ -107,49 +127,7 @@ function generate(numberOfSentences) {
     let temp_ja = main.ja;
     for(const s of stack) {
       let ja;
-      if (s._n.ja !== undefined) {
-        ja = s._n.ja;
-      }
-      else {
-        ja = hepburnPlus(s._n);
-        let ej = ejdict(s._n);
-        if (ej.length > 0) {
-          // console.log("filtering", ej)
-          let e = randy.choice(ej);
-          console.log("filtering", e.mean)
-          if (/= ?[a-zA-Z]+/g.test(e.mean) === false) {
-            // not "=otherword"
-            let mean = e.mean;
-            let _mean = mean.split("/").filter(m => /…‘.\'/.test(m) === false);
-            if(_mean.length > 0) {
-              mean = randy.choice(_mean);
-              mean = mean.replace(/\(.*\)$/g, "");
-              mean = mean.replace(/「(.*)」/g, "");
-              mean = mean.replace(/《(.*)》/g, "");
-              mean = mean.replace(/〈(.*)〉/g, "");
-              mean = mean.replace(/\{(.*)\}/g, "");
-              mean = randy.choice(mean.split(/[;,』]/));
-              mean = mean.replace(/\(.*\)$/g, "");
-              mean = mean.replace(/『/g, "");
-              mean = mean.replace(/』/g, "");
-              mean = mean.replace(/\(….*\)/g, "");
-              mean = mean.replace(/‘.+'/g, "");
-              mean = mean.replace(/'.+'/g, "");
-              mean = mean.replace(/\([a-zA-Z]+\)/g, "");
-              // mean = mean.replace(/\(/g, "");
-              // mean = mean.replace(/\)/g, "");
-              mean = mean.replace(/\[/g, "");
-              mean = mean.replace(/\]/g, "");
-              mean = mean.replace(/…/g, "");
-              mean = mean.replace(/ /g, "");
-              console.log("filtered", mean)
-              if (mean.length > 0) {
-                ja = mean;
-              }
-            }
-          }
-        }
-      }
+      ja = s.ja;
       temp_ja = temp_ja.replace(new RegExp(`{{ ${s.type} }}`), ja)
     }
     let end;
@@ -163,6 +141,55 @@ function generate(numberOfSentences) {
   return { en: sentences_en, ja: sentences_ja };
 }
 
+function translate(en) {
+  let ja;
+  let fv = [];
+  ja = hepburnPlus(en);
+  let ej = ejdict(en);
+  if (ej.length > 0) {
+    // console.log("filtering", ej)
+    let e = randy.choice(ej);
+    // console.log("filtering", e.mean)
+    if (/= ?[a-zA-Z]+/g.test(e.mean) === false) {
+      // not "=otherword"
+      let mean = e.mean;
+      let temp;
+      let _mean = mean.split("/").filter(m => /…‘.\'/.test(m) === false);
+      function process(re) {
+        temp = mean.replace(re, "");
+        fv.push(temp === mean);
+        mean = temp;
+      }
+      if(_mean.length > 0) {
+        mean = randy.choice(_mean);
+        process(/\(.*\)$/g);
+        process(/「(.*)」/g);
+        process(/《(.*)》/g);
+        process(/〈(.*)〉/g);
+        process(/\{(.*)\}/g);
+        mean = randy.choice(mean.split(/[;,』]/));
+        process(/\(.*\)$/g);
+        process(/『/g);
+        process(/』/g);
+        process(/\(….*\)/g);
+        process(/‘.+'/g);
+        process(/'.+'/g);
+        process(/\([a-zA-Z]+\)/g);
+        // mean = mean.replace(/\(/g, "");
+        // mean = mean.replace(/\)/g, "");
+        process(/\[/g);
+        process(/\]/g);
+        process(/…/g);
+        process(/ /g);
+        // console.log("filtered", mean)
+        if (mean.length > 0) {
+          ja = mean;
+        }
+      }
+    }
+  }
+  return { ja, fv };
+}
 // ----------------------------------------------------------------------
 //                      TEMPLATES & CONVENIENCE F()s
 // ----------------------------------------------------------------------
