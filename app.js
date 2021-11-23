@@ -15,7 +15,7 @@ let lastVec = [];
 let numPool = 5;
 let numPoolDelta = 5;
 
-const paragraphWordCount = 100;
+const paragraphWordCount = 2000;
 
 const hepburnPlus = (s) => {
   let _s = hepburn.toKatakana(s);
@@ -365,10 +365,28 @@ var phrases = [
 ];
 
 let count = 0;
-for(let i = 0; i < 5; i++) {
+let paragraphs = [];
+for (let i = 0; i < 25; i++) {
   const p = generate(i);
   count += p.en.split(" ").length;
-  console.log(p);
+  paragraphs.push(p);
   numPool += numPoolDelta;
 }
-console.log(count);
+
+let result = { en: "", ja: "", count };
+for (const p of paragraphs) {
+  result.en += `${p.title_en}
+${p.en}
+
+`
+result.ja += `${p.title_ja}
+${p.ja}
+
+`
+}
+
+console.log(result.en)
+
+console.log(result.ja)
+
+console.log(count)
