@@ -13,7 +13,7 @@ const stack = [];
 let lastVec = [];
 
 let numPool = 5;
-let numPoolDiff = 5;
+let numPoolDelta = 5;
 
 const paragraphWordCount = 100;
 
@@ -105,12 +105,30 @@ Sentencer.configure({
     }
   }
 })
+
+// https://www.freecodecamp.org/news/three-ways-to-title-case-a-sentence-in-javascript-676a9175eb27/
+function titleCase(str) {
+  return str.toLowerCase().split(' ').map(function(word) {
+    return word.replace(word[0], word[0].toUpperCase());
+  }).join(' ');
+}
+titleCase("I'm a little tea pot");
+
 // generate sentences synchronously...
 // useful for the homepage.
-function generate() {
-  var sentences_en = "";
-  var sentences_ja = "";
-  var i = 0;
+function generate(chapter) {
+  let sentences_en = "";
+  let sentences_ja = "";
+  let i = 0;
+  stack.length = 0;
+  const title_format = `Chapter ${chapter+1}: The {{ adjective }} {{ noun }}`;
+  let title_en = titleCase(Sentencer.make(title_format));
+  let title_ja = `第${chapter+1}章 {{ adjective }}{{ noun }}`;
+  for(const s of stack) {
+    let ja;
+    ja = s.ja;
+    title_ja = title_ja.replace(new RegExp(`{{ ${s.type} }}`), ja)
+  }
   while(sentences_en.split(" ").length < paragraphWordCount) {
     // sentences += capitalizeFirstLetter( randomStartingPhrase() + makeSentenceFromTemplate()) + ".";
     // sentences += (numberOfSentences > 1) ? " " : "";
@@ -138,7 +156,7 @@ function generate() {
       sentences_ja += start.ja + temp_ja + "。";
     }
   }
-  return { en: sentences_en, ja: sentences_ja };
+  return { en: sentences_en, ja: sentences_ja, title_en, title_ja };
 }
 
 function translate(en) {
@@ -346,4 +364,11 @@ var phrases = [
   // {en: "Recent controversy aside, ", ja: ""},
 ];
 
-console.log(generate(4))
+let count = 0;
+for(let i = 0; i < 5; i++) {
+  const p = generate(i);
+  count += p.en.split(" ").length;
+  console.log(p);
+  numPool += numPoolDelta;
+}
+console.log(count);
