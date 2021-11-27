@@ -13,7 +13,14 @@ const stack = [];
 let lastVec = [];
 
 let numPool = 5;
-let numPoolDelta = 5;
+let numPoolFunc = function (i) {
+  return Math.floor(Math.pow(i, 2)) + 4
+};
+let numParagraphs = 25;
+
+// for(let i = 1; i <= 25; i++) {
+//   console.log(i, numPoolFunc(i))
+// }
 
 const paragraphWordCount = 2000;
 
@@ -235,12 +242,21 @@ var _sentenceTemplates = [
     ja: "{{ noun }}は{{ a_noun }}だ"
   },
   {
+    en: "the {{ noun }} would be {{ a_noun }}",
+    ja: "{{ noun }}は{{ a_noun }}であろう"
+  },
+  {
     en: "{{ a_noun }} is {{ an_adjective }} {{ noun }}",
     ja: "{{ a_noun }}は{{ an_adjective }}{{ noun }}である"
   },
   {
     en: "the {{ numeral }} {{ adjective }} {{ noun }} is, in its own way, {{ a_noun }}",
     ja: "{{ numeral }}の{{ adjective }}{{ noun }}は、ある意味では{{ a_noun }}だ"
+  },
+  {
+    en: "after turning the {{ numeral }} corner, I came across {{ an_adjective }} {{ noun }}.",
+    ja: "{{ numeral }}の角を曲がると、{{ an_adjective }}{{ noun }}に出会った",
+    rate: 2,
   },
   {
     en: "I came across {{ an_adjective }} {{ noun }}",
@@ -264,17 +280,30 @@ var _sentenceTemplates = [
   },
   {
     en: "behind {{ a_noun }}, I found {{ an_adjective }} {{ noun }}",
-    ja: "{{ a_noun }}の裏で、ぼくは{{ an_adjective }}{{ noun }}を見つけた"
+    ja: "{{ a_noun }}の裏で、ぼくは{{ an_adjective }}{{ noun }}を見つけた",
+    rate: 2
+  },
+  {
+    en: "behind {{ a_noun }}, I saw {{ an_adjective }} {{ noun }}",
+    ja: "{{ a_noun }}の陰で、ぼくは{{ an_adjective }}{{ noun }}を見つけた",
+    rate: 2
   },
   // {
   //   en: "",
   //   ja: ""
   // },
-  // {en: "their {{ noun }} was, in this moment, {{ an_adjective }} {{ noun }}", 
-  // ja: "彼らの{{ noun }}は、現在では{{ an_adjective }}{{ noun }}だ"},
-  // {en: "{{ a_noun }} is {{ a_noun }} from the right perspective", 
-  // ja: "{{ a_noun }}は正しい観点からすると{{ a_noun }}である"},
-  // {en: "the literature would have us believe that {{ an_adjective }} {{ noun }} is not but {{ a_noun }}", ja: "文献によると{{ an_adjective }}{{ noun }}は{{ a_noun }}であると信じられるだろう"},
+  {
+    en: "their {{ noun }} was, in this moment, {{ an_adjective }} {{ noun }}", 
+    ja: "彼らの{{ noun }}は、現在では{{ an_adjective }}{{ noun }}だ"
+  },
+  {
+    en: "{{ a_noun }} is {{ a_noun }} from the right perspective", 
+    ja: "{{ a_noun }}は正しい観点からすると{{ a_noun }}である"
+  },
+  {
+    en: "the literature would have us believe that {{ an_adjective }} {{ noun }} is not but {{ a_noun }}",
+    ja: "文献によると{{ an_adjective }}{{ noun }}は{{ a_noun }}であると信じられるだろう"
+  },
   // {en: "{{ an_adjective }} {{ noun }} is {{ a_noun }} of the mind", ja: "{{ an_adjective }}{{ noun }}は is {{ a_noun }}"},
   // {en: "the {{ adjective }} {{ noun }} reveals itself as {{ an_adjective }} {{ noun }} to those who look", 
   // ja: "{{ adjective }}{{ noun }}は調査した者には{{ an_adjective }}{{ noun }}であることが判明した"},
@@ -284,42 +313,58 @@ var _sentenceTemplates = [
   //  ja: ""},
   // {en: "they were lost without the {{ adjective }} {{ noun }} that composed their {{ noun }}",
   //  ja: ""},
-  // {en: "the {{ adjective }} {{ noun }} comes from {{ an_adjective }} {{ noun }}",
-  //  ja: ""},
+  {
+    en: "the {{ adjective }} {{ noun }} comes from {{ an_adjective }} {{ noun }}",
+   ja: "その{{ adjective }}{{ noun }}は{{ an_adjective }}{{ noun }}から来ている"
+  },
   // {en: "{{ a_noun }} can hardly be considered {{ an_adjective }} {{ noun }} without also being {{ a_noun }}", 
   // ja: ""},
   // {en: "few can name {{ an_adjective }} {{ noun }} that isn't {{ an_adjective }} {{ noun }}",
   //  ja: ""},
   // {en: "some posit the {{ adjective }} {{ noun }} to be less than {{ adjective }}",
   //  ja: ""},
-  // {en: "{{ a_noun }} of the {{ noun }} is assumed to be {{ an_adjective }} {{ noun }}",
-  //  ja: ""},
+  {
+    en: "{{ a_noun }} of the {{ noun }} is assumed to be {{ an_adjective }} {{ noun }}",
+    ja: "{{ noun }}の中の{{ a_noun }}は、{{ an_adjective }}{{ noun }}と考えられる"
+  },
   // {en: "{{ a_noun }} sees {{ a_noun }} as {{ an_adjective }} {{ noun }}",
   //  ja: ""},
   // {en: "the {{ noun }} of {{ a_noun }} becomes {{ an_adjective }} {{ noun }}",
   //  ja: ""},
-  // {en: "{{ a_noun }} is {{ a_noun }}'s {{ noun }}", 
-  // ja: ""},
+  {
+    en: "{{ a_noun }} is {{ a_noun }}'s {{ noun }}", 
+    ja: "{{ a_noun }}は{{ a_noun }}の{{ noun }}だ"
+  },
   // {en: "{{ a_noun }} is the {{ noun }} of {{ a_noun }}", 
   // ja: ""},
   // {en: "{{ an_adjective }} {{ noun }}'s {{ noun }} comes with it the thought that the {{ adjective }} {{ noun }} is {{ a_noun }}", 
   // ja: ""},
-  // {en: "{{ nouns }} are {{ adjective }} {{ nouns }}", 
-  // ja: ""},
+  {
+    en: "{{ nouns }} are {{ adjective }} {{ nouns }}", 
+    ja: "{{ nouns }}は{{ adjective }}{{ nouns }}だ"
+  },
   // {en: "{{ adjective }} {{ nouns }} show us how {{ nouns }} can be {{ nouns }}",
   //  ja: ""},
   // {en: "before {{ nouns }}, {{ nouns }} were only {{ nouns }}",
   //  ja: ""},
-  // {en: "those {{ nouns }} are nothing more than {{ nouns }}", 
-  // ja: ""},
+  {
+    en: "those {{ nouns }} are nothing more than {{ nouns }}", 
+    ja: "その{{ nouns }}は{{ nouns }}以上の何物でもない"
+  },
   // {en: "some {{ adjective }} {{ nouns }} are thought of simply as {{ nouns }}",
   //  ja: ""},
-  // {en: "one cannot separate {{ nouns }} from {{ adjective }} {{ nouns }}", 
-  // ja: ""},
-  // {en: "the {{ nouns }} could be said to resemble {{ adjective }} {{ nouns }}", 
-  // ja: ""},
-  // {en: "{{ an_adjective }} {{ noun }} without {{ nouns }} is truly a {{ noun }} of {{ adjective }} {{ nouns }}", 
-  // ja: ""},
+  {
+    en: "one cannot separate {{ nouns }} from {{ adjective }} {{ nouns }}", 
+    ja: "{{ nouns }}を{{ adjective }}{{ nouns }}から切り離すことはできない"
+  },
+  {
+    en: "the {{ nouns }} could be said to resemble {{ adjective }} {{ nouns }}", 
+    ja: "{{ nouns }}は{{ adjective }}{{ nouns }}に似ているということができる"
+  },
+  {
+    en: "{{ an_adjective }} {{ noun }} without {{ nouns }} is truly a {{ noun }} of {{ adjective }} {{ nouns }}", 
+    ja: "{{ nouns }}のない{{ an_adjective }}{{ noun }}はまさに{{ adjective }}{{ nouns }}のなかの{{ noun }}である"
+  },
 ];
 
 const sentenceTemplates = [];
@@ -349,7 +394,7 @@ var phrases = [
   // { en: "This could be, or perhaps ", ja: "恐らく、強いて言えば" },
   // {en: "This is not to discredit the idea that ", ja: ""},
   {en: "We know that ", ja: "知っての通り、"},
-  // {en: "It's an undeniable fact, really; ", ja: ""},
+  {en: "It's an undeniable fact that ", ja: "ということは否定できない事実だ", rev: true},
   {en: "Framed in a different way, ", ja: "別の言い方をすれば、"},
   {en: "If we change the perspective, ", ja: "見かたを変えてみると、"},
   // {en: "What we don't know for sure is whether or not ", ja: ""},
@@ -358,19 +403,19 @@ var phrases = [
   // {en: "Though we assume the latter, ", ja: ""},
   {en: "Far from the truth, ", ja: "真実とはかけ離れているが、"},
   {en: "Extending this logic, ", ja: "この論理を応用すると、"},
-  // {en: "Nowhere is it disputed that ", ja: ""},
-  // {en: "In modern times ", ja: ""},
-  // {en: "In ancient times ", ja: ""},
-  // {en: "Recent controversy aside, ", ja: ""},
+  {en: "Nowhere is it disputed that ", ja: "ということが議論されることはない", rev: true},
+  {en: "In modern times ", ja: "現代においては"},
+  {en: "In ancient times ", ja: "古代においては"},
+  {en: "Recent controversy aside, ", ja: "最近の論争はさておき、"},
 ];
 
 let count = 0;
 let paragraphs = [];
-for (let i = 0; i < 25; i++) {
+for (let i = 0; i < numParagraphs; i++) {
+  numPool = numPoolFunc(i);
   const p = generate(i);
   count += p.en.split(" ").length;
   paragraphs.push(p);
-  numPool += numPoolDelta;
 }
 
 let result = { en: "", ja: "", count };
